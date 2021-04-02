@@ -33,14 +33,12 @@ public class RadioFragment extends Fragment {
                              ViewGroup container, Bundle savedInstanceState) {
 
         View root = inflater.inflate(R.layout.fragment_radio, container, false);
-
-
+        
         radioToggleButton = root.findViewById(R.id.radio_toggle_button);
 
         radioToggleButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //ServiceContainer.radioService = new RadioService();
                 int num = ServiceContainer.radioService.getCounter();
                 Toast.makeText(getActivity().getApplicationContext(), "number: " + String.valueOf(num).toString(), Toast.LENGTH_SHORT).show();
             }
