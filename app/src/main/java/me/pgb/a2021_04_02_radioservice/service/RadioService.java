@@ -2,6 +2,7 @@ package me.pgb.a2021_04_02_radioservice.service;
 
 import android.app.Service;
 import android.content.Intent;
+import android.media.MediaPlayer;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -11,7 +12,12 @@ import android.os.Message;
 import android.os.Process;
 import android.util.Log;
 
+import me.pgb.a2021_04_02_radioservice.controllers.MediaPlayerHandler;
+
 public class RadioService extends Service {
+
+    private MediaPlayerHandler mediaPlayerHandler;
+    private String URL = "http://stream.whus.org:8000/whusfm";
 
     private final String TAG = "_SERVICE";
     private final IBinder binder = new LocalBinder();
@@ -33,6 +39,8 @@ public class RadioService extends Service {
     public class MyHandler extends Handler {
         public MyHandler(Looper looper) {
             super(looper);
+            mediaPlayerHandler = new MediaPlayerHandler();
+            mediaPlayerHandler.setupMediaPlayer(URL);
             Log.i(TAG,"MyHandler extends Handler");
         }
 
@@ -46,6 +54,8 @@ public class RadioService extends Service {
             Integer integer = Integer.getInteger(someObject.toString(),0);
             if (integer.intValue() >= 200) {
                 keepRunning = false;
+                mediaPlayerHandler.pauseMediaPlayer();
+                mediaPlayerHandler.shutdownMediaPlayer();
                 try {
                     backgroundThread.join();
                 } catch (InterruptedException e) {
@@ -57,7 +67,9 @@ public class RadioService extends Service {
                     backgroundThread = new Thread("Background Thread in Foreground") {
                         @Override
                         public void run() {
+                            mediaPlayerHandler.asyncLaunchMediaPlayer();
                             while (keepRunning) {
+
                                 try {
                                     Thread.sleep(500);
                                     counter++;
