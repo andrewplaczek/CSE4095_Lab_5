@@ -24,7 +24,6 @@ public class RadioService extends Service {
     private int counter = 0;
     private MyHandler myHandler;
     private HandlerThread handlerThread;
-    private Thread backgroundThread;
     private boolean runningInBackground = false;
     private boolean keepRunning = true;
 
@@ -47,48 +46,21 @@ public class RadioService extends Service {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            int startId = msg.arg1;
+
             Object someObject = msg.obj;
 
             Log.i(TAG,"msg from Handler: " + someObject.toString());
-            Integer integer = Integer.getInteger(someObject.toString(),0);
-            if (integer.intValue() >= 200) {
+            String myMessage = someObject.toString();
+            if (myMessage == "OFF") {
                 keepRunning = false;
                 mediaPlayerHandler.pauseMediaPlayer();
                 mediaPlayerHandler.shutdownMediaPlayer();
-                try {
-                    backgroundThread.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                runningInBackground = false;
             } else {
                 if (!runningInBackground) {
                     runningInBackground = true;
-                    backgroundThread = new Thread("Background Thread in Foreground") {
-                        @Override
-                        public void run() {
-                            mediaPlayerHandler.asyncLaunchMediaPlayer();
-                            while (keepRunning) {
-
-                                try {
-                                    Thread.sleep(500);
-                                    counter++;
-                                } catch (InterruptedException e) {
-                                    // Restore interrupt status.
-                                    Thread.currentThread().interrupt();
-                                }
-                            }
-                        }
-                    };
-                    if (!keepRunning) {
-                        try {
-                            backgroundThread.join();
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    } else {
-                        backgroundThread.start();
-                    }
+                    mediaPlayerHandler.setupMediaPlayer(URL);
+                    mediaPlayerHandler.asyncLaunchMediaPlayer();
                 }
             }
 
@@ -118,25 +90,6 @@ public class RadioService extends Service {
         handlerThread.quitSafely();
     }
 
-    /*
-     *
-     * if this service is run as an Intent, and we call startService on the intent
-     * then the next code is useful
-     *
-     */
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-
-        Log.i(TAG,"onStartCommand");
-
-        if(intent != null) {
-            // May not have an Intent is the service was killed and restarted
-            // (See STICKY_SERVICE).
-            Log.i(TAG,"do stuff in onStartCommand");
-        }
-
-        return Service.START_STICKY;
-    }
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -148,15 +101,25 @@ public class RadioService extends Service {
         return binder;
     }
 
-    public int getCounter() { /** method for clients */
+    //Turn radio on using handler
+    public void radioOn() {
         Message msg = myHandler.obtainMessage();
-        msg.arg1 = 99;
-        msg.obj = String.valueOf(counter).toString();
+        //Arg1 not needed
+        msg.arg1 = 1;
+        msg.obj = "ON";
         myHandler.sendMessage(msg);
-        return counter;
     }
 
-    public void stopForegroundCounter() { /** method for clients */
-        keepRunning = false;
+    //Turn radio off using handler
+    public void radioOff(){
+        Message msg = myHandler.obtainMessage();
+        //Arg1 not needed
+        msg.arg1 = 1;
+        msg.obj = "OFF";
+        myHandler.sendMessage(msg);
+    }
+
+    public void changeURL(String newURL){
+        URL = newURL;
     }
 }
